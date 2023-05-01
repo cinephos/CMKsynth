@@ -135,7 +135,6 @@ ksmps = 1
 nchnls = 2
 0dbfs = 1
 
-giFFTSizes[]    fillarray   512,1024,2048,4096,8192
 
 instr 1
  
