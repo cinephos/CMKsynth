@@ -18,3 +18,5 @@ It has been tested on Windows and works within [FL Studio](https://www.image-lin
 It has been tested on Linux and works within [Qtractor](https://qtractor.org/) DAW.
 
 The code (unfortunately) consumes 5 times as much CPU resources compared to other synths, therefore the code needs to be revised and improved.
+
+Visit the [Wiki page](https://github.com/cinephos/CMKsynth/wiki) for more...
