@@ -133,7 +133,6 @@ ksmps = 32
 nchnls = 2
 0dbfs = 1
 
-; giFFTSizes[]    fillarray   512,1024,2048,4096,8192
 gisaw           ftgen       1, 0, 4097, 7, 1, 4096, -1
 gisquare        ftgen       2, 0, 4097, 7, 1, 2048, 1, 0, -1, 2048, -1
 gitriangle      ftgen       3, 0, 4097, 7, 0, 1024, 1, 2048, -1, 1024, 0
