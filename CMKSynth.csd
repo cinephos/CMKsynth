@@ -102,7 +102,6 @@ rslider  bounds(180, 130,  90,  90) channel("fsus") text("Sustain") range(0, 1, 
 rslider  bounds(270, 130,  90,  90) channel("frel") text("Release") range(0, 4, .1, 1, .01) $RSL
 }
 
-
 image    bounds(  5, 245, 375, 120) channel("presets") colour(0, 0, 0, 0)
 {
 groupbox bounds(  0,   0, 375, 120) text("Presets") colour(0, 0, 0, 0)
@@ -110,7 +109,6 @@ combobox bounds( 10,  30, 165, 25), populate("*.snaps")
 filebutton bounds(180, 30, 90, 25), text("Save"), populate("*.snaps"), mode("named preset")
 filebutton bounds(275, 30, 90, 25), text("Delete"), populate("*.snaps"), mode("remove preset")
 }
-
 
 image    bounds(590, 245, 450, 120) channel("ADSRselector") colour(0, 0, 0, 0)
 { 
@@ -131,9 +129,14 @@ keyboard bounds(  100, 370, 845,  95) value(36)
 </CsOptions>
 <CsInstruments>
 
-ksmps = 1
+ksmps = 32
 nchnls = 2
 0dbfs = 1
+
+; giFFTSizes[]    fillarray   512,1024,2048,4096,8192
+gisaw           ftgen       1, 0, 4097, 7, 1, 4096, -1
+gisquare        ftgen       2, 0, 4097, 7, 1, 2048, 1, 0, -1, 2048, -1
+gitriangle      ftgen       3, 0, 4097, 7, 0, 1024, 1, 2048, -1, 1024, 0
 
 
 instr 1
@@ -192,11 +195,28 @@ instr 1
  kresonance chnget  "resonance"
  kamount    chnget  "amount"
 
- 
  kporttime  linseg  0,0.01,0.05
  kAudioGain chnget  "Gain"
  kAudioGain portk   kAudioGain,kporttime
  
+;- Region of PW tables 
+ 
+ if kosc1pw==1 || kosc2pw==1 then
+  kchanged  changed kosc1pwv, kosc2pwv
+  if kchanged == 1 then
+            reinit  reset
+  endif
+ endif 
+  
+ reset:
+    ipw11   =       int(i(kosc1pwv) * 4096)
+    ipw10   =       4096 - ipw11 
+    ipwtab1 ftgen   21, 0, 4097, 7, 1, ipw11, 1, 0 , -1, ipw10, -1   
+    ipw21   =       int(i(kosc2pwv) * 4096)
+    ipw20   =       4096 - ipw21 
+    ipwtab2 ftgen   22, 0, 4097, 7, 1, ipw21, 1, 0 , -1, ipw20, -1       
+ rireturn    
+  
 ;- Region: LFO as frequency
 
  if klfoonoff==1 && klfosin==1 then
@@ -219,48 +239,53 @@ instr 1
   
 ;- Region: Oscillator 1
 
+ aphase1, asyncout1  syncphasor  kosc1freq, a(0)  
+ 
  if kosc1sin==1 then
-  aOsc1     poscil  p5, kosc1freq
+  aOsc1     tablei  aphase1, -1, 1
+  aOsc1     *=      p5
  elseif kosc1saw==1 then
-  aOsc1     vco2    p5, kosc1freq
+  aOsc1     tablei  aphase1, gisaw, 1
+  aOsc1     *=      p5  
  elseif kosc1squ==1 then
-  aOsc1     vco2    p5, kosc1freq, 10
+  aOsc1     tablei  aphase1, gisquare, 1
+  aOsc1     *=      p5 
  elseif kosc1tri==1 then
-  aOsc1     vco2    p5, kosc1freq, 12
+  aOsc1     tablei  aphase1, gitriangle, 1
+  aOsc1     *=      p5 
  elseif kosc1pw==1 then
-  aOsc1     vco2    p5, kosc1freq, 2, kosc1pwv
+  aOsc1     tablei  aphase1, ipwtab1, 1
+  aOsc1     *=      p5 
  endif 
  
 ;- Region: Oscillator 2
 
- if ksync==1 then 
-  azero     init        0.0
-  aO1phase, atrigger    syncphasor  kosc1freq, azero
-  kreset    vaget 0, atrigger  
-  if kreset==1 then
-   reinit reset
-  endif
- endif  
- 
- reset:
- 
  if kosc2onoff==1 then
-  if kosc2sin==1 then
-   aOsc2    poscil  p5, kosc2freq
-  elseif kosc2saw==1 then
-   aOsc2    vco2    p5, kosc2freq
-  elseif kosc2squ==1 then
-   aOsc2    vco2    p5, kosc2freq, 10
-  elseif kosc2tri==1 then
-   aOsc2    vco2    p5, kosc2freq, 12
-  elseif kosc2pw==1 then
-   aOsc2    vco2    p5, kosc2freq, 2, kosc2pwv
+  if ksync==1 then 
+   aphase2,asyncout2 syncphasor  kosc2freq, asyncout1
+  else
+   aphase2  phasor kosc2freq
+  endif 
+ 
+  if kosc1sin==1 then
+   aOsc2    tablei  aphase2, -1, 1
+   aOsc2    *=      p5
+  elseif kosc1saw==1 then
+   aOsc2    tablei  aphase2, gisaw, 1
+   aOsc2    *=      p5  
+  elseif kosc1squ==1 then
+   aOsc2    tablei  aphase2, gisquare, 1
+   aOsc2    *=      p5 
+  elseif kosc1tri==1 then
+   aOsc2    tablei  aphase2, gitriangle, 1
+   aOsc2    *=      p5 
+  elseif kosc1pw==1 then
+   aOsc2    tablei  aphase2, ipwtab2, 1
+   aOsc2    *=      p5 
   endif 
  else
-  aOsc2     =       0
+  aOsc2     =       a(0)
  endif
- 
- rireturn
  
 ;- Region: Noise
 
@@ -303,11 +328,7 @@ instr 1
  aAudioGain interp  kAudioGain
 
             outs    aSig*aAudioGain*kEnv, aSig*aAudioGain*kEnv
- 
 endin
-
-
-
 
 </CsInstruments>
 <CsScore>
